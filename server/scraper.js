@@ -216,7 +216,7 @@ export class NvlGroup {
   }
 }
 
-// New Pinterest Downloader Function
+// Updated Pinterest Downloader Function
 export async function pinterestDl(url) {
   return new Promise(async (resolve, reject) => {
     try {
@@ -229,42 +229,102 @@ export async function pinterestDl(url) {
       const $ = cheerio.load(data)
 
       const results = []
-      const pageTitle = $('meta[property="og:title"]').attr("content") || "Pinterest Content"
-      const pageDescription = $('meta[property="og:description"]').attr("content") || ""
+      let pageTitle = $('meta[property="og:title"]').attr("content") || "Pinterest Content"
+      let pageDescription = $('meta[property="og:description"]').attr("content") || ""
 
-      // Try to find video first from og:video tags
-      let videoUrl =
-        $('meta[property="og:video:url"]').attr("content") || $('meta[property="og:video"]').attr("content")
+      // Try to find __PINS_DATA__ or __INITIAL_STATE__ JSON
+      const scriptContent = $('script[data-test-id="initial-state"]').html() || $('script[id="__PINS_DATA__"]').html()
 
-      // Fallback: Try to find video from twitter:player meta tag
-      if (!videoUrl) {
-        videoUrl = $('meta[name="twitter:player"]').attr("content")
+      if (scriptContent) {
+        try {
+          const jsonData = JSON.parse(scriptContent)
+          const pinData =
+            jsonData?.initialReduxState?.pins?.[Object.keys(jsonData.initialReduxState.pins)[0]] ||
+            jsonData?.resourceResponses?.[0]?.response?.data ||
+            jsonData?.props?.initialReduxState?.pins?.[Object.keys(jsonData.props.initialReduxState.pins)[0]]
+
+          if (pinData) {
+            pageTitle = pinData.title || pageTitle
+            pageDescription = pinData.description || pageDescription
+
+            // Extract video URLs
+            if (pinData.videos && pinData.videos.video_list) {
+              const videoList = pinData.videos.video_list
+              // Prioritize higher quality videos
+              const qualities = ["480p", "720p", "1080p", "original"]
+              let bestVideoUrl = null
+
+              for (const quality of qualities) {
+                if (videoList[quality] && videoList[quality].url) {
+                  bestVideoUrl = videoList[quality].url
+                }
+              }
+
+              if (bestVideoUrl) {
+                results.push({
+                  type: "video",
+                  url: bestVideoUrl,
+                  title: "Video",
+                })
+              }
+            }
+
+            // Extract image URLs
+            if (pinData.images && pinData.images.orig && pinData.images.orig.url) {
+              const imageUrl = pinData.images.orig.url
+              // Only add image if it's not already added as a video (e.g., video thumbnail)
+              if (!results.some((item) => item.url === imageUrl)) {
+                results.push({
+                  type: "image",
+                  url: imageUrl,
+                  title: "Image",
+                })
+              }
+            } else if (pinData.image_full_url) {
+              // Fallback for some pins
+              const imageUrl = pinData.image_full_url
+              if (!results.some((item) => item.url === imageUrl)) {
+                results.push({
+                  type: "image",
+                  url: imageUrl,
+                  title: "Image",
+                })
+              }
+            }
+          }
+        } catch (jsonError) {
+          console.warn("Could not parse Pinterest JSON data:", jsonError)
+          // Fallback to meta tags if JSON parsing fails
+        }
       }
 
-      if (videoUrl) {
-        results.push({
-          type: "video",
-          url: videoUrl,
-          title: "Video", // Simplified title for the item in results array
-        })
-      }
+      // Fallback to meta tags if no results from JSON or JSON parsing failed
+      if (results.length === 0) {
+        const videoUrlMeta =
+          $('meta[property="og:video:url"]').attr("content") || $('meta[property="og:video"]').attr("content")
+        if (videoUrlMeta) {
+          results.push({
+            type: "video",
+            url: videoUrlMeta,
+            title: "Video (from meta)",
+          })
+        }
 
-      // Always try to find image, even if video exists (a pin can have both or just one)
-      const imageUrl = $('meta[property="og:image"]').attr("content")
-      // Ensure we don't add the same URL twice if video URL is also the image URL (e.g., for video thumbnails)
-      if (imageUrl && imageUrl !== videoUrl) {
-        results.push({
-          type: "image",
-          url: imageUrl,
-          title: "Image", // Simplified title for the item in results array
-        })
+        const imageUrlMeta = $('meta[property="og:image"]').attr("content")
+        if (imageUrlMeta && !results.some((item) => item.url === imageUrlMeta)) {
+          results.push({
+            type: "image",
+            url: imageUrlMeta,
+            title: "Image (from meta)",
+          })
+        }
       }
 
       if (results.length > 0) {
         resolve({
           title: pageTitle,
           description: pageDescription,
-          results: results, // This is the key change
+          results: results,
         })
       } else {
         reject(new Error("No downloadable content found on Pinterest URL."))

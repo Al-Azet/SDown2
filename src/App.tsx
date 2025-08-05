@@ -1,4 +1,5 @@
 
+
 import axios from "axios"
 import type React from "react"
 import { useState } from "react"
@@ -7,13 +8,12 @@ import {
   Moon,
   Sun,
   Instagram,
-  Youtube,
   Facebook,
   Music2,
   AlertCircle,
   XCircle,
   Loader2,
-  PinIcon as Pinterest,
+  ImageIcon,
 } from "lucide-react"
 
 function App() {
@@ -28,7 +28,6 @@ function App() {
   const validateUrl = (url: string, platform: string): boolean => {
     const patterns = {
       Instagram: /(?:^|\.)instagram\.com|instagr\.am/i,
-      YouTube: /(?:^|\.)youtube\.com|youtu\.be/i,
       TikTok: /(?:^|\.)tiktok\.com/i,
       Facebook: /(?:^|\.)facebook\.com|fb\.watch/i,
       Pinterest: /(?:^|\.)pinterest\.com|pin\.it/i,
@@ -128,14 +127,12 @@ function App() {
 
           {/* Platform Selection */}
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-8">
-            {" "}
-            {/* Changed to sm:grid-cols-5 */}
             {[
               { name: "Instagram", icon: Instagram, color: "rose" },
-              { name: "YouTube", icon: Youtube, color: "red" },
+              // { name: 'YouTube', icon: Youtube, color: 'red' }, // Removed YouTube
               { name: "TikTok", icon: Music2, color: "purple" },
               { name: "Facebook", icon: Facebook, color: "blue" },
-              { name: "Pinterest", icon: Pinterest, color: "pink" }, // Added Pinterest
+              { name: "Pinterest", icon: ImageIcon, color: "red" },
             ].map((social) => (
               <button
                 key={social.name}
@@ -215,43 +212,6 @@ function App() {
             <div className={`mt-8 p-4 rounded-lg ${darkMode ? "bg-gray-700" : "bg-gray-100"}`}>
               <h3 className="font-medium mb-4">Download Options:</h3>
               <div className="space-y-4">
-                {platform === "YouTube" && (
-                  <>
-                    <div className="mb-4">
-                      <h4 className="font-medium">{result.info}</h4>
-                      <p className="text-sm text-gray-500">Duration: {result.duration}</p>
-                    </div>
-                    <div className="grid gap-4">
-                      <h5 className="font-medium">Video:</h5>
-                      {result.video.map((v: any, i: number) => (
-                        <a
-                          key={i}
-                          href={v.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center justify-between p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                        >
-                          <span>Download Video {v.height}p</span>
-                          <span className="text-sm">{v.size}</span>
-                        </a>
-                      ))}
-                      <h5 className="font-medium mt-4">Audio:</h5>
-                      {result.audio.map((v: any, i: number) => (
-                        <a
-                          key={i}
-                          href={v.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center justify-between p-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                        >
-                          <span>Download Audio {v.bitrate} Kbps</span>
-                          <span className="text-sm">{v.size}</span>
-                        </a>
-                      ))}
-                    </div>
-                  </>
-                )}
-
                 {platform === "TikTok" && result && (
                   <>
                     <div className="mb-4">
@@ -378,26 +338,26 @@ function App() {
                 {platform === "Pinterest" && result && (
                   <>
                     <div className="mb-4">
-                      <h4 className="font-medium">{result.title || "Pinterest Content"}</h4>
-                      {result.description && <p className="text-sm text-gray-500">{result.description}</p>}
-                      {result.thumbnail && result.type === "video" && (
-                        <img
-                          src={result.thumbnail || "/placeholder.svg"}
-                          alt="Thumbnail"
-                          className="w-full max-w-sm rounded-lg shadow mt-2"
-                        />
-                      )}
+                      <h4 className="font-medium">{result.title}</h4>
+                      {result.description && <p className="text-sm text-gray-500 mt-2">{result.description}</p>}
                     </div>
                     <div className="grid gap-4">
-                      <a
-                        href={result.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-center p-3 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors"
-                      >
-                        <Download className="h-5 w-5 mr-2" />
-                        <span>Download {result.type === "video" ? "Video" : "Image"}</span>
-                      </a>
+                      {result.results.map((item: any, i: number) => (
+                        <a
+                          key={i}
+                          href={item.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`flex items-center justify-between p-3 rounded-lg hover:transition-colors ${
+                            item.type === "video"
+                              ? "bg-red-600 text-white hover:bg-red-700"
+                              : "bg-red-500 text-white hover:bg-red-600"
+                          }`}
+                        >
+                          <span>Download {item.type === "video" ? "Video" : "Image"}</span>
+                          <span className="text-sm">{item.title}</span>
+                        </a>
+                      ))}
                     </div>
                   </>
                 )}

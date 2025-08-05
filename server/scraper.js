@@ -232,9 +232,14 @@ export async function pinterestDl(url) {
       const pageTitle = $('meta[property="og:title"]').attr("content") || "Pinterest Content"
       const pageDescription = $('meta[property="og:description"]').attr("content") || ""
 
-      // Try to find video first
-      const videoUrl =
+      // Try to find video first from og:video tags
+      let videoUrl =
         $('meta[property="og:video:url"]').attr("content") || $('meta[property="og:video"]').attr("content")
+
+      // Fallback: Try to find video from twitter:player meta tag
+      if (!videoUrl) {
+        videoUrl = $('meta[name="twitter:player"]').attr("content")
+      }
 
       if (videoUrl) {
         results.push({

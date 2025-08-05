@@ -31,7 +31,7 @@ function App() {
       YouTube: /(?:^|\.)youtube\.com|youtu\.be/i,
       TikTok: /(?:^|\.)tiktok\.com/i,
       Facebook: /(?:^|\.)facebook\.com|fb\.watch/i,
-      Pinterest: /(?:^|\.)pinterest\.com/i, // Added Pinterest pattern
+      Pinterest: /(?:^|\.)pinterest\.com|pin\.it/i,
     }
 
     if (!platform) {
